@@ -8,9 +8,13 @@ import { ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp } from "lucide-rea
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
 import { fetchStockData, type StockDataResponse } from "@/lib/api"
+import { Toggle } from "@/components/ui/toggle"
 
 // Top stocks to display in the market overview
 const topStocks = ["AAPL", "MSFT", "AMZN", "GOOGL", "NVDA"]
+
+// Time frame options
+type TimeFrame = "1hour" | "1day" | "1week" | "1month"
 
 interface MarketOverviewProps {
   type: "personal" | "market"
@@ -21,24 +25,25 @@ export function MarketOverview({ type }: MarketOverviewProps) {
   const [stocksData, setStocksData] = useState<Record<string, StockDataResponse>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [selectedStock, setSelectedStock] = useState<string | null>(null)
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>("1day")
 
   useEffect(() => {
-    async function loadStockData() {
-      setIsLoading(true)
-      const stockPromises = topStocks.map((symbol) => fetchStockData(symbol))
-      const results = await Promise.all(stockPromises)
-
-      const stocksMap: Record<string, StockDataResponse> = {}
-      topStocks.forEach((symbol, index) => {
-        stocksMap[symbol] = results[index]
-      })
-
-      setStocksData(stocksMap)
-      setIsLoading(false)
-    }
-
     loadStockData()
-  }, [])
+  }, [timeFrame])
+
+  async function loadStockData() {
+    setIsLoading(true)
+    const stockPromises = topStocks.map((symbol) => fetchStockData(symbol, timeFrame))
+    const results = await Promise.all(stockPromises)
+
+    const stocksMap: Record<string, StockDataResponse> = {}
+    topStocks.forEach((symbol, index) => {
+      stocksMap[symbol] = results[index]
+    })
+
+    setStocksData(stocksMap)
+    setIsLoading(false)
+  }
 
   // Prepare chart data for the selected stock or market overview
   const getChartData = () => {
@@ -139,6 +144,46 @@ export function MarketOverview({ type }: MarketOverviewProps) {
                     {changePercent.toFixed(2)}%
                   </Badge>
                 </div>
+                
+                <div className="flex justify-between my-3 border rounded-md p-1">
+                  <Toggle
+                    pressed={timeFrame === "1hour"}
+                    onPressedChange={() => setTimeFrame("1hour")}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs flex-1"
+                  >
+                    1H
+                  </Toggle>
+                  <Toggle
+                    pressed={timeFrame === "1day"}
+                    onPressedChange={() => setTimeFrame("1day")}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs flex-1"
+                  >
+                    1D
+                  </Toggle>
+                  <Toggle
+                    pressed={timeFrame === "1week"}
+                    onPressedChange={() => setTimeFrame("1week")}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs flex-1"
+                  >
+                    1W
+                  </Toggle>
+                  <Toggle
+                    pressed={timeFrame === "1month"}
+                    onPressedChange={() => setTimeFrame("1month")}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs flex-1"
+                  >
+                    1M
+                  </Toggle>
+                </div>
+                
                 <div className="h-[200px] mt-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
