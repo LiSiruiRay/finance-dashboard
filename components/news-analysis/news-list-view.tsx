@@ -98,9 +98,9 @@ export function NewsListView({
       ) : events.length === 0 ? (
         <div className="p-4 text-center">No events found</div>
       ) : (
-        events.map((eventItem) => (
+        events.map((eventItem, index) => (
           <Card
-            key={eventItem.id}
+            key={`card-${eventItem.id}-${index}`}
             className="transition-colors border-l-4 border-l-blue-500 shadow-sm hover:shadow-md"
           >
             <CardContent className="p-4">
@@ -167,7 +167,7 @@ export function NewsListView({
                   {/* Only render the first 5 news items or all if "show more" is clicked */}
                   {getNewsToShow(eventItem).map((news, index) => (
                     <div
-                      key={index}
+                      key={`${eventItem.id}-news-${index}`}
                       className="bg-white dark:bg-slate-800 p-3 rounded-md shadow-sm hover:shadow border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-800 transition-all"
                     >
                       <div className="flex items-start justify-between">

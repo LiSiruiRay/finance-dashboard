@@ -11,8 +11,16 @@ import {
 import { EventItem } from "./types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import {
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { formatPostTime, getDomainFromUrl } from "./utils";
+import { Button } from "@/components/ui/button";
 
 interface NewsPieViewProps {
   isExpanded: boolean;
@@ -28,6 +36,9 @@ export function NewsPieView({
   toggleEventExpansion,
 }: NewsPieViewProps) {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState<Record<string, number>>({});
+  const NEWS_PER_PAGE = 5;
 
   // Create a stable color map for every event ID
   const colorMapRef = useRef<Record<string, string>>({});
@@ -43,13 +54,29 @@ export function NewsPieView({
     });
   }, [events]);
 
-  // Format data for the pie chart
+  // Get a short summary for the pie chart label
+  const getShortSummary = (event: EventItem) => {
+    if (!event.Event.summary) return "Event";
+
+    // Extract the first sentence or first few words
+    const summary = event.Event.summary;
+    const firstSentence = summary.split(".")[0];
+
+    if (firstSentence.length < 20) {
+      return firstSentence;
+    } else {
+      // Take just the first few words
+      return firstSentence.substring(0, 20) + "...";
+    }
+  };
+
+  // Format data for the pie chart - use summary instead of event ID
   const pieData = events.map((event) => ({
-    name: `Event ${event.Event.event_id.substring(0, 8)}...`,
-    value:
-      typeof event.Percentage === "string"
-        ? parseFloat(event.Percentage)
-        : event.Percentage || 0,
+    name: getShortSummary(event),
+    value: Number(event.Percentage) || 0,
+    //   typeof event.Percentage === "string"
+    //     ? parseFloat(event.Percentage)
+    //     : event.Percentage || 0,
     id: event.id,
     // Use the stable color map
     color:
@@ -59,12 +86,47 @@ export function NewsPieView({
 
   const handlePieClick = (data: any, index: number) => {
     setSelectedEventId(data.id);
+    // Initialize pagination when selecting a new event
+    if (!currentPage[data.id]) {
+      setCurrentPage((prev) => ({
+        ...prev,
+        [data.id]: 1,
+      }));
+    }
   };
 
   // Find the selected event if any
   const selectedEvent = selectedEventId
     ? events.find((e) => e.id === selectedEventId)
     : null;
+
+  // Pagination handlers
+  const goToNextPage = (eventId: string) => {
+    const event = events.find((e) => e.id === eventId);
+    if (!event) return;
+
+    const totalPages = Math.ceil(event.Event.news_list.length / NEWS_PER_PAGE);
+    const nextPage = Math.min(currentPage[eventId] + 1, totalPages);
+
+    setCurrentPage((prev) => ({
+      ...prev,
+      [eventId]: nextPage,
+    }));
+  };
+
+  const goToPrevPage = (eventId: string) => {
+    setCurrentPage((prev) => ({
+      ...prev,
+      [eventId]: Math.max(prev[eventId] - 1, 1),
+    }));
+  };
+
+  // Get paginated news items
+  const getPaginatedNews = (event: EventItem) => {
+    const page = currentPage[event.id] || 1;
+    const startIndex = (page - 1) * NEWS_PER_PAGE;
+    return event.Event.news_list.slice(startIndex, startIndex + NEWS_PER_PAGE);
+  };
 
   return (
     <div className="space-y-6">
@@ -171,7 +233,11 @@ export function NewsPieView({
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium text-blue-800 dark:text-blue-300">
-                      Event {selectedEvent.Event.event_id}
+                      {selectedEvent.Event.summary
+                        ? selectedEvent.Event.summary.length > 60
+                          ? `${selectedEvent.Event.summary.substring(0, 60)}...`
+                          : selectedEvent.Event.summary
+                        : `Event ${selectedEvent.Event.event_id}`}
                     </h4>
                     {expandedEvents[selectedEvent.id] ? (
                       <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -179,13 +245,17 @@ export function NewsPieView({
                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
-                  {selectedEvent.Event.summary && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {selectedEvent.Event.summary.length > 120
-                        ? `${selectedEvent.Event.summary.substring(0, 120)}...`
-                        : selectedEvent.Event.summary}
-                    </p>
-                  )}
+                  {selectedEvent.Event.summary &&
+                    selectedEvent.Event.summary.length > 60 && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {expandedEvents[selectedEvent.id]
+                          ? selectedEvent.Event.summary
+                          : `${selectedEvent.Event.summary.substring(
+                              0,
+                              120
+                            )}...`}
+                      </p>
+                    )}
                   <div className="text-xs text-muted-foreground mt-1">
                     <span>
                       {selectedEvent.Event.news_list.length} related news items
@@ -210,7 +280,8 @@ export function NewsPieView({
 
               {expandedEvents[selectedEvent.id] && (
                 <div className="mt-4 pt-4 border-t space-y-3">
-                  {selectedEvent.Event.news_list.map((news, index) => (
+                  {/* Paginated news items */}
+                  {getPaginatedNews(selectedEvent).map((news, index) => (
                     <div
                       key={index}
                       className="bg-white dark:bg-slate-800 p-3 rounded-md shadow-sm hover:shadow border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-800 transition-all"
@@ -246,6 +317,49 @@ export function NewsPieView({
                       </div>
                     </div>
                   ))}
+
+                  {/* Pagination controls */}
+                  {selectedEvent.Event.news_list.length > NEWS_PER_PAGE && (
+                    <div className="flex items-center justify-between pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          goToPrevPage(selectedEvent.id);
+                        }}
+                        disabled={(currentPage[selectedEvent.id] || 1) <= 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+
+                      <span className="text-xs text-muted-foreground">
+                        Page {currentPage[selectedEvent.id] || 1} of{" "}
+                        {Math.ceil(
+                          selectedEvent.Event.news_list.length / NEWS_PER_PAGE
+                        )}
+                      </span>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          goToNextPage(selectedEvent.id);
+                        }}
+                        disabled={
+                          (currentPage[selectedEvent.id] || 1) >=
+                          Math.ceil(
+                            selectedEvent.Event.news_list.length / NEWS_PER_PAGE
+                          )
+                        }
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
