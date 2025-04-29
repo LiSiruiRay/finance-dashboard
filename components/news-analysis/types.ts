@@ -25,4 +25,4 @@ export const sentimentData = [
   { name: "Negative", value: 4, color: "#ef4444" },
 ];
 
-export type ViewType = "list" | "pie" | "graph";
+export type ViewType = "list" | "pie" | "graph" | "history";

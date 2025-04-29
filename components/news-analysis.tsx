@@ -14,6 +14,7 @@ import { useNewsEvents } from "./news-analysis/use-news-events";
 import { NewsListView } from "./news-analysis/news-list-view";
 import { NewsPieView } from "./news-analysis/news-pie-view";
 import { NewsGraphView } from "./news-analysis/news-graph-view";
+import { HistoryView } from "./news-analysis/history-view";
 
 export function NewsAnalysis() {
   const [viewType, setViewType] = useState<ViewType>("list");
@@ -31,8 +32,8 @@ export function NewsAnalysis() {
     >
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Financial News Impact</h3>
-        <div className="flex space-x-1">
-          <div className="border rounded-md mr-2">
+        <div className="flex space-x-2">
+          <div className="border rounded-md flex">
             <button
               onClick={() => setViewType("list")}
               className={`p-1.5 ${viewType === "list" ? "bg-muted" : ""}`}
@@ -51,6 +52,13 @@ export function NewsAnalysis() {
               onClick={() => setViewType("graph")}
               className={`p-1.5 ${viewType === "graph" ? "bg-muted" : ""}`}
               aria-label="Relational graph view"
+            >
+              <Network className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewType("history")}
+              className={`p-1.5 ${viewType === "history" ? "bg-muted" : ""}`}
+              aria-label="History view"
             >
               <Network className="h-4 w-4" />
             </button>
@@ -93,6 +101,8 @@ export function NewsAnalysis() {
       {viewType === "graph" && (
         <NewsGraphView isExpanded={isExpanded} viewType={viewType} />
       )}
+
+      {viewType === "history" && <HistoryView isExpanded={isExpanded} />}
     </div>
   );
 }
