@@ -22,7 +22,7 @@ export type StockDataResponse = {
   error?: string;
 };
 
-type TimeFrame = "1hour" | "1day" | "1week" | "1month";
+type TimeFrame = "1hour" | "1day" | "1week" | "1month" | "1year" | "max";
 
 export async function fetchStockData(
   symbol: string,
@@ -44,6 +44,13 @@ export async function fetchStockData(
         break;
       case "1month":
         url = `${BASE_URL}?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${API_KEY}`;
+        break;
+      case "1year":
+        url = `${BASE_URL}?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${API_KEY}`;
+        break;
+      case "max":
+        // For maximum data, use WEEKLY with outputsize=full to get all available data
+        url = `${BASE_URL}?function=TIME_SERIES_WEEKLY&symbol=${symbol}&outputsize=full&apikey=${API_KEY}`;
         break;
       default:
         url = `${BASE_URL}?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
@@ -114,8 +121,10 @@ function getTimeSeriesKey(timeFrame: TimeFrame): string {
     case "1day":
       return "Time Series (Daily)";
     case "1week":
+    case "max":
       return "Weekly Time Series";
     case "1month":
+    case "1year":
       return "Monthly Time Series";
     default:
       return "Time Series (Daily)";
@@ -171,6 +180,14 @@ function getMockStockData(
     case "1month":
       dataPoints = 12; // 12 months
       dayMultiplier = 30;
+      break;
+    case "1year":
+      dataPoints = 52; // 52 weeks in a year
+      dayMultiplier = 7; // Weekly data points for a year
+      break;
+    case "max":
+      dataPoints = 100; // 100 data points for maximum view
+      dayMultiplier = 30; // Monthly spacing for a long-term view
       break;
   }
 

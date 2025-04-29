@@ -1,48 +1,69 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp } from "lucide-react"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Button } from "@/components/ui/button"
-import { fetchStockData, type StockDataResponse } from "@/lib/api"
-import { Toggle } from "@/components/ui/toggle"
+import { useState, useEffect } from "react";
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from "recharts";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
+import { fetchStockData, type StockDataResponse } from "@/lib/api";
+import { Toggle } from "@/components/ui/toggle";
 
 // Top stocks to display in the market overview
-const topStocks = ["AAPL", "MSFT", "AMZN", "GOOGL", "NVDA"]
+const topStocks = ["AAPL", "MSFT", "AMZN", "GOOGL", "NVDA"];
 
 // Time frame options
-type TimeFrame = "1hour" | "1day" | "1week" | "1month"
+type TimeFrame = "1hour" | "1day" | "1week" | "1month" | "1year" | "max";
 
 interface MarketOverviewProps {
-  type: "personal" | "market"
+  type: "personal" | "market";
 }
 
 export function MarketOverview({ type }: MarketOverviewProps) {
-  const [isOpen, setIsOpen] = useState(true)
-  const [stocksData, setStocksData] = useState<Record<string, StockDataResponse>>({})
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedStock, setSelectedStock] = useState<string | null>(null)
-  const [timeFrame, setTimeFrame] = useState<TimeFrame>("1day")
+  const [isOpen, setIsOpen] = useState(true);
+  const [stocksData, setStocksData] = useState<
+    Record<string, StockDataResponse>
+  >({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedStock, setSelectedStock] = useState<string | null>(null);
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>("1day");
 
   useEffect(() => {
-    loadStockData()
-  }, [timeFrame])
+    loadStockData();
+  }, [timeFrame]);
 
   async function loadStockData() {
-    setIsLoading(true)
-    const stockPromises = topStocks.map((symbol) => fetchStockData(symbol, timeFrame))
-    const results = await Promise.all(stockPromises)
+    setIsLoading(true);
+    const stockPromises = topStocks.map((symbol) =>
+      fetchStockData(symbol, timeFrame)
+    );
+    const results = await Promise.all(stockPromises);
 
-    const stocksMap: Record<string, StockDataResponse> = {}
+    const stocksMap: Record<string, StockDataResponse> = {};
     topStocks.forEach((symbol, index) => {
-      stocksMap[symbol] = results[index]
-    })
+      stocksMap[symbol] = results[index];
+    });
 
-    setStocksData(stocksMap)
-    setIsLoading(false)
+    setStocksData(stocksMap);
+    setIsLoading(false);
   }
 
   // Prepare chart data for the selected stock or market overview
@@ -53,60 +74,66 @@ export function MarketOverview({ type }: MarketOverviewProps) {
           date: item.date,
           value: item.close,
         }))
-        .reverse()
+        .reverse();
     } else if (Object.keys(stocksData).length > 0) {
       // For market overview, use the first stock's dates but average the values
-      const dates = stocksData[topStocks[0]].data.map((item) => item.date)
+      const dates = stocksData[topStocks[0]].data.map((item) => item.date);
       return dates
         .map((date, index) => {
           const avgValue =
             Object.values(stocksData).reduce((sum, stock) => {
-              const dataPoint = stock.data.find((item) => item.date === date)
-              return sum + (dataPoint ? dataPoint.close : 0)
-            }, 0) / Object.keys(stocksData).length
+              const dataPoint = stock.data.find((item) => item.date === date);
+              return sum + (dataPoint ? dataPoint.close : 0);
+            }, 0) / Object.keys(stocksData).length;
 
           return {
             date,
             value: avgValue,
-          }
+          };
         })
-        .reverse()
+        .reverse();
     }
-    return []
-  }
+    return [];
+  };
 
-  const chartData = getChartData()
+  const chartData = getChartData();
 
   const title = selectedStock
     ? `${selectedStock} Performance`
     : type === "personal"
-      ? "Portfolio Performance"
-      : "Market Overview"
+    ? "Portfolio Performance"
+    : "Market Overview";
 
   // Calculate values based on selected stock or overall market
   const getValue = () => {
     if (selectedStock && stocksData[selectedStock]) {
-      return stocksData[selectedStock].latestPrice
+      return stocksData[selectedStock].latestPrice;
     } else {
       return (
-        Object.values(stocksData).reduce((sum, stock) => sum + stock.latestPrice, 0) / Object.keys(stocksData).length
-      )
+        Object.values(stocksData).reduce(
+          (sum, stock) => sum + stock.latestPrice,
+          0
+        ) / Object.keys(stocksData).length
+      );
     }
-  }
+  };
 
   const getChange = () => {
     if (selectedStock && stocksData[selectedStock]) {
-      return stocksData[selectedStock].changePercent
+      return stocksData[selectedStock].changePercent;
     } else {
       return (
-        Object.values(stocksData).reduce((sum, stock) => sum + stock.changePercent, 0) / Object.keys(stocksData).length
-      )
+        Object.values(stocksData).reduce(
+          (sum, stock) => sum + stock.changePercent,
+          0
+        ) / Object.keys(stocksData).length
+      );
     }
-  }
+  };
 
-  const value = getValue()
-  const changePercent = getChange()
-  const isPositive = changePercent >= 0
+  const value = getValue();
+  const changePercent = getChange();
+  const isPositive = changePercent >= 0;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-2">
@@ -114,7 +141,11 @@ export function MarketOverview({ type }: MarketOverviewProps) {
         <h3 className="text-lg font-medium">{title}</h3>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="sm" className="w-9 p-0">
-            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {isOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
             <span className="sr-only">Toggle {title}</span>
           </Button>
         </CollapsibleTrigger>
@@ -123,7 +154,9 @@ export function MarketOverview({ type }: MarketOverviewProps) {
       <CollapsibleContent className="space-y-4">
         {isLoading ? (
           <div className="h-[200px] flex items-center justify-center">
-            <div className="animate-pulse text-muted-foreground">Loading market data...</div>
+            <div className="animate-pulse text-muted-foreground">
+              Loading market data...
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -134,7 +167,10 @@ export function MarketOverview({ type }: MarketOverviewProps) {
                     <p className="text-sm text-muted-foreground">{title}</p>
                     <h3 className="text-2xl font-bold">${value.toFixed(2)}</h3>
                   </div>
-                  <Badge variant={isPositive ? "default" : "destructive"} className="flex items-center">
+                  <Badge
+                    variant={isPositive ? "default" : "destructive"}
+                    className="flex items-center"
+                  >
                     {isPositive ? (
                       <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
                     ) : (
@@ -144,7 +180,7 @@ export function MarketOverview({ type }: MarketOverviewProps) {
                     {changePercent.toFixed(2)}%
                   </Badge>
                 </div>
-                
+
                 <div className="flex justify-between my-3 border rounded-md p-1">
                   <Toggle
                     pressed={timeFrame === "1hour"}
@@ -182,26 +218,117 @@ export function MarketOverview({ type }: MarketOverviewProps) {
                   >
                     1M
                   </Toggle>
+                  <Toggle
+                    pressed={timeFrame === "1year"}
+                    onPressedChange={() => setTimeFrame("1year")}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs flex-1"
+                  >
+                    1Y
+                  </Toggle>
+                  <Toggle
+                    pressed={timeFrame === "max"}
+                    onPressedChange={() => setTimeFrame("max")}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs flex-1"
+                  >
+                    Max
+                  </Toggle>
                 </div>
-                
+
                 <div className="h-[200px] mt-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
                       <defs>
-                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
-                          <stop offset="50%" stopColor="#22c55e" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#22c55e" stopOpacity={0.1} />
+                        <linearGradient
+                          id="colorValue"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#22c55e"
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="50%"
+                            stopColor="#22c55e"
+                            stopOpacity={0.4}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#22c55e"
+                            stopOpacity={0.1}
+                          />
                         </linearGradient>
                         <filter id="shadow" height="200%" width="100%">
-                          <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#22c55e" floodOpacity="0.3" />
+                          <feDropShadow
+                            dx="0"
+                            dy="6"
+                            stdDeviation="8"
+                            floodColor="#22c55e"
+                            floodOpacity="0.3"
+                          />
                         </filter>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="date" />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={(date) => {
+                          if (timeFrame === "1hour") {
+                            // For hourly data, only show the time (HH:MM)
+                            const timeOnly = date.split(" ")[1];
+                            if (timeOnly) {
+                              return timeOnly.substring(0, 5); // Returns HH:MM
+                            }
+                            return date;
+                          } else if (timeFrame === "1day") {
+                            // For daily data, show day and month only (DD/MM)
+                            const dateParts = date.split("-");
+                            if (dateParts.length >= 3) {
+                              return `${dateParts[2]}/${dateParts[1]}`;
+                            }
+                            return date;
+                          } else if (timeFrame === "1week") {
+                            // For weekly data, show day and month only (DD/MM)
+                            const dateParts = date.split("-");
+                            if (dateParts.length >= 3) {
+                              return `${dateParts[2]}/${dateParts[1]}`;
+                            }
+                            return date;
+                          } else if (
+                            timeFrame === "1month" ||
+                            timeFrame === "1year"
+                          ) {
+                            // For monthly or yearly data, show month and year (MM/YYYY)
+                            const dateParts = date.split("-");
+                            if (dateParts.length >= 2) {
+                              return `${dateParts[1]}/${dateParts[0]}`;
+                            }
+                            return date;
+                          } else if (timeFrame === "max") {
+                            // For max data, show year only
+                            const dateParts = date.split("-");
+                            if (dateParts.length >= 1) {
+                              return dateParts[0];
+                            }
+                            return date;
+                          }
+                          return date;
+                        }}
+                        interval="preserveStartEnd"
+                        minTickGap={15}
+                      />
                       <YAxis domain={["auto", "auto"]} />
                       <Tooltip
-                        formatter={(value: number) => [`$${value.toFixed(2)}`, "Price"]}
+                        formatter={(value: number) => [
+                          `$${value.toFixed(2)}`,
+                          "Price",
+                        ]}
                         labelFormatter={(label) => `Date: ${label}`}
                       />
                       <Area
@@ -218,8 +345,12 @@ export function MarketOverview({ type }: MarketOverviewProps) {
                 </div>
                 {selectedStock && (
                   <div className="mt-4 text-center">
-                    <Button variant="outline" onClick={() => setSelectedStock(null)}>
-                      Back to {type === "personal" ? "Portfolio" : "Market"} Overview
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedStock(null)}
+                    >
+                      Back to {type === "personal" ? "Portfolio" : "Market"}{" "}
+                      Overview
                     </Button>
                   </div>
                 )}
@@ -233,19 +364,29 @@ export function MarketOverview({ type }: MarketOverviewProps) {
                   <div
                     key={symbol}
                     className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedStock === symbol ? "bg-accent" : "hover:bg-accent/50"
+                      selectedStock === symbol
+                        ? "bg-accent"
+                        : "hover:bg-accent/50"
                     }`}
                     onClick={() => setSelectedStock(symbol)}
                   >
                     <div>
                       <div className="font-medium">{symbol}</div>
                       <div className="text-sm text-muted-foreground">
-                        {topStocks.includes(symbol) ? "Market Leader" : "Your Portfolio"}
+                        {topStocks.includes(symbol)
+                          ? "Market Leader"
+                          : "Your Portfolio"}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium">${data.latestPrice.toFixed(2)}</div>
-                      <div className={data.change > 0 ? "text-green-500" : "text-red-500"}>
+                      <div className="font-medium">
+                        ${data.latestPrice.toFixed(2)}
+                      </div>
+                      <div
+                        className={
+                          data.change > 0 ? "text-green-500" : "text-red-500"
+                        }
+                      >
                         {data.change > 0 ? "+" : ""}
                         {data.change.toFixed(2)} ({data.change > 0 ? "+" : ""}
                         {data.changePercent.toFixed(2)}%)
@@ -259,5 +400,5 @@ export function MarketOverview({ type }: MarketOverviewProps) {
         )}
       </CollapsibleContent>
     </Collapsible>
-  )
+  );
 }
