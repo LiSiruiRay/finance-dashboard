@@ -81,7 +81,14 @@ export function NewsAnalysis() {
         />
       )}
 
-      {viewType === "pie" && <NewsPieView isExpanded={isExpanded} />}
+      {viewType === "pie" && (
+        <NewsPieView
+          isExpanded={isExpanded}
+          events={events}
+          expandedEvents={expandedEvents}
+          toggleEventExpansion={toggleEventExpansion}
+        />
+      )}
 
       {viewType === "graph" && (
         <NewsGraphView isExpanded={isExpanded} viewType={viewType} />
